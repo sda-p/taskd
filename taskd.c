@@ -1,0 +1,135 @@
+/*
+ * fc_vsock_daemon.c
+ *
+ * A very small Firecracker-friendly daemon that:
+ *   • is started by root at boot     (e.g. from /etc/rc.local or a unit file)
+ *   • double-forks to detach from tty and run in the background
+ *   • listens on an AF_VSOCK stream socket
+ *   • accepts one connection at a time and prints a greeting, then closes
+ *
+ * Build:   gcc -O2 -Wall -Wextra -pedantic -std=c11 fc_vsock_daemon.c -o fc_vsock_daemon
+ * Run:     fc_vsock_daemon <PORT>
+ *
+ * Tested on: Linux 5.10+ inside a Firecracker microVM
+ *
+ * © 2025 – public domain / CC0
+ */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <linux/vm_sockets.h>
+#include <string.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/stat.h>
+
+static void daemonize(void)
+{
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("first fork");
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) /* parent */
+        exit(EXIT_SUCCESS);
+
+    /* We are in the first child. Become session leader. */
+    if (setsid() == -1) {
+        perror("setsid");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Ensure we’ll never re-acquire a controlling terminal. */
+    pid = fork();
+    if (pid < 0) {
+        perror("second fork");
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) /* first child */
+        exit(EXIT_SUCCESS);
+
+    /* second child continues */
+
+    /* Clear file-mode creation mask and change directory to / */
+    umask(0);
+    if (chdir("/") == -1) {
+        perror("chdir");
+        /* not fatal, keep going */
+    }
+
+    /* Close inherited FDs */
+    for (int fd = 0; fd < 3; ++fd)
+        close(fd);
+
+    /* Redirect stdio to /dev/null */
+    int nullfd = open("/dev/null", O_RDWR);
+    if (nullfd >= 0) {
+        dup2(nullfd, STDIN_FILENO);
+        dup2(nullfd, STDOUT_FILENO);
+        dup2(nullfd, STDERR_FILENO);
+        if (nullfd > 2)
+            close(nullfd);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <vsock-port>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    unsigned int port = (unsigned int)strtoul(argv[1], NULL, 10);
+    if (port == 0) {
+        fprintf(stderr, "Invalid port\n");
+        return EXIT_FAILURE;
+    }
+
+    /* Fork off and turn into a daemon immediately */
+    daemonize();
+
+    /* Set up AF_VSOCK listener */
+    int srv_fd = socket(AF_VSOCK, SOCK_STREAM, 0);
+    if (srv_fd == -1) {
+        /* Cannot log; write to syslog in a fuller implementation */
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_vm sa = {0};
+    sa.svm_family = AF_VSOCK;
+    sa.svm_port   = port;
+    sa.svm_cid    = VMADDR_CID_ANY;  /* Listen on our own CID */
+
+    if (bind(srv_fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+        close(srv_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(srv_fd, 32) == -1) {
+        close(srv_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Simple service loop */
+    for (;;) {
+        int client_fd = accept(srv_fd, NULL, NULL);
+        if (client_fd == -1) {
+            if (errno == EINTR)
+                continue;
+            /* Permanent failure – just restart loop; could also exit */
+            continue;
+        }
+
+        /* Tiny protocol: send banner, then close */
+        const char banner[] = "hello from microVM daemon\n";
+        send(client_fd, banner, sizeof(banner) - 1, MSG_NOSIGNAL);
+        close(client_fd);
+    }
+
+    /* never reached */
+    return EXIT_SUCCESS;
+}
+
