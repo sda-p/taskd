@@ -1,5 +1,5 @@
 /*
- * fc_vsock_daemon.c
+ * taskd.c
  *
  * A very small Firecracker-friendly daemon that:
  *   • is started by root at boot     (e.g. from /etc/rc.local or a unit file)
@@ -7,8 +7,8 @@
  *   • listens on an AF_VSOCK stream socket
  *   • accepts one connection at a time and prints a greeting, then closes
  *
- * Build:   gcc -O2 -Wall -Wextra -pedantic -std=c11 fc_vsock_daemon.c -o fc_vsock_daemon
- * Run:     fc_vsock_daemon <PORT>
+ * Build:   gcc -O2 -Wall -Wextra -pedantic -std=c11 taskd.c -o taskd
+ * Run:     taskd <PORT>
  *
  * Tested on: Linux 5.10+ inside a Firecracker microVM
  *
