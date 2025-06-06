@@ -26,6 +26,22 @@ This daemon is designed for **high-performance parallelization** across isolated
 
 ---
 
+## 🔨 Building
+
+This project uses **CMake** and expects a recent `clang` compiler. The
+configuration step automatically fetches all git submodules.
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+`clang` version 19 or newer is required; configuration will fail if an
+older compiler is detected.
+
+---
+
 ## 🔧 Integration
 
 ### 1. Host Side: `extended_firecracker_parallel.py`
