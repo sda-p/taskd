@@ -29,7 +29,9 @@ This daemon is designed for **high-performance parallelization** across isolated
 ## 🔨 Building
 
 This project uses **CMake** and expects a recent `clang` compiler. The
-configuration step automatically fetches all git submodules.
+configuration step automatically fetches all git submodules, including the
+embedded [cJSON](https://github.com/DaveGamble/cJSON) library used for parsing
+and generating JSON.
 
 ```bash
 mkdir build && cd build
