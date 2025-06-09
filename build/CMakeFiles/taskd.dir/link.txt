@@ -1,0 +1,1 @@
+/usr/bin/clang CMakeFiles/taskd.dir/taskd.c.o -o taskd  -Wl,-rpath,/home/cris/Documents/ssAGI/taskd/build/external/cJSON external/cJSON/libcjson.so.1.7.18 libxxhash.a -lm 
