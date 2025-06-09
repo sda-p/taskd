@@ -10,8 +10,8 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
     message(FATAL_ERROR "Clang is required to build taskd")
 endif()
 
-if(CMAKE_C_COMPILER_VERSION VERSION_LESS "19")
-    message(FATAL_ERROR "Clang 19 or newer is required; found ${CMAKE_C_COMPILER_VERSION}")
+if(CMAKE_C_COMPILER_VERSION VERSION_LESS "17")
+    message(FATAL_ERROR "Clang 17 or newer is required; found ${CMAKE_C_COMPILER_VERSION}")
 endif()
 
 # Ensure all git submodules are pulled
@@ -25,7 +25,7 @@ if(NOT GIT_SUBMOD_RESULT EQUAL 0)
 endif()
 
 # Enable LTO and stripping
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
 
 # Build submodules when available
@@ -46,15 +46,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/xxHash/Makefile)
 endif()
 
 # Statically linked executable
-add_executable(taskd taskd.c)
-set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC ON)
-set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC ON)
+add_executable(taskd taskd.c state_machine.c)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC OFF)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC OFF)
 
 # Link libraries statically
 add_link_options(-Wl,--gc-sections)
 add_compile_options(-ffunction-sections -fdata-sections)
 add_compile_options(-Oz)  # if using Clang
-target_link_options(taskd PRIVATE -static)
+# target_link_options(taskd PRIVATE -static)
 
 if(TARGET cjson)
     target_link_libraries(taskd PRIVATE cjson)
