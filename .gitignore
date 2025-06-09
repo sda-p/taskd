@@ -1,3 +1,4 @@
-./taskd
-./external
-./build
+taskd/
+external/
+build/*
+!build/.gitkeep

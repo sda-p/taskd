@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+
 # Force use of clang before project() so CMake configures with the correct compiler
 find_program(CLANG_BIN clang REQUIRED)
 set(CMAKE_C_COMPILER ${CLANG_BIN} CACHE STRING "C compiler" FORCE)
@@ -23,21 +24,43 @@ if(NOT GIT_SUBMOD_RESULT EQUAL 0)
     message(FATAL_ERROR "Failed to update git submodules")
 endif()
 
+# Enable LTO and stripping
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
+
 # Build submodules when available
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON/CMakeLists.txt)
+    # Prevent cJSON from building tests and fuzzing targets
+    set(ENABLE_CJSON_TEST OFF CACHE BOOL "Disable cJSON test build" FORCE)
+    set(ENABLE_CJSON_UNINSTALL OFF CACHE BOOL "Disable uninstall target" FORCE)
+    set(ENABLE_LOCALES OFF CACHE BOOL "Disable locales" FORCE)
+    set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON_utils" FORCE)
     add_subdirectory(external/cJSON)
+    set_target_properties(cjson PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/xxHash/Makefile)
     add_library(xxhash STATIC external/xxHash/xxhash.c)
+    set_target_properties(xxhash PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(xxhash PUBLIC external/xxHash)
 endif()
 
-
+# Statically linked executable
 add_executable(taskd taskd.c)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC ON)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC ON)
+
+# Link libraries statically
+add_link_options(-Wl,--gc-sections)
+add_compile_options(-ffunction-sections -fdata-sections)
+add_compile_options(-Oz)  # if using Clang
+target_link_options(taskd PRIVATE -static)
+
 if(TARGET cjson)
     target_link_libraries(taskd PRIVATE cjson)
     target_include_directories(taskd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON)
-    target_include_directories(xxhash PUBLIC external/xxHash)
-    target_link_libraries(taskd PRIVATE xxhash)
 endif()
 
+if(TARGET xxhash)
+    target_link_libraries(taskd PRIVATE xxhash)
+endif()
