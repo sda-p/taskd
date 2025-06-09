@@ -29,6 +29,7 @@
 // Submodule libraries
 #include <cJSON.h>
 #include "xxhash.h"
+#include "protocol.h"
 
 static void daemonize(void)
 {
@@ -127,9 +128,12 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        /* Tiny protocol: send banner, then close */
-        const char banner[] = "hello from microVM daemon\n";
-        send(client_fd, banner, sizeof(banner) - 1, MSG_NOSIGNAL);
+        /* Receive a JSON message, then reply */
+        proto_msg req;
+        if (proto_recv(client_fd, &req)) {
+            proto_msg resp = { "ACK", "ok" };
+            proto_send(client_fd, &resp);
+        }
         close(client_fd);
     }
 
