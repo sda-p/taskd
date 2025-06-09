@@ -28,9 +28,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON/CMakeLists.txt)
     add_subdirectory(external/cJSON)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/xxHash/Makefile)
+    add_library(xxhash STATIC external/xxHash/xxhash.c)
+endif()
+
+
 add_executable(taskd taskd.c)
 if(TARGET cjson)
     target_link_libraries(taskd PRIVATE cjson)
     target_include_directories(taskd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON)
+    target_include_directories(xxhash PUBLIC external/xxHash)
+    target_link_libraries(taskd PRIVATE xxhash)
 endif()
 

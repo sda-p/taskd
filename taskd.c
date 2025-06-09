@@ -26,6 +26,10 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+// Submodule libraries
+#include <cJSON.h>
+#include "xxhash.h"
+
 static void daemonize(void)
 {
     pid_t pid = fork();
