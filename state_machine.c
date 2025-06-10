@@ -14,6 +14,27 @@ typedef struct sm_vm {
   sm_reg regs[SM_REG_COUNT];
 } sm_vm;
 
+/* Current context for return signalling */
+static __thread struct sm_ctx *current_ctx = NULL;
+
+typedef struct sm_job {
+  sm_instr *instr;
+  struct sm_job *next;
+} sm_job;
+
+typedef struct sm_ctx {
+  sm_vm vm;
+  sm_job *head;
+  sm_job *tail;
+  pthread_mutex_t lock;
+  pthread_cond_t cond;
+  pthread_cond_t done_cond;
+  bool job_done;
+  int job_value;
+  pthread_t thread;
+  bool running;
+} sm_ctx;
+
 /* Helper to validate register indices */
 static inline bool reg_valid(int idx) { return idx >= 0 && idx < SM_REG_COUNT; }
 
@@ -102,6 +123,19 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
         fs_unpack(t, d);
       break;
     }
+    case SM_OP_RETURN: {
+      sm_return *a = (sm_return *)cur->data;
+      int val = a ? a->value : 0;
+      if (current_ctx) {
+        pthread_mutex_lock(&current_ctx->lock);
+        current_ctx->job_value = val;
+        current_ctx->job_done = true;
+        pthread_cond_signal(&current_ctx->done_cond);
+        pthread_mutex_unlock(&current_ctx->lock);
+      }
+      cur = NULL;
+      continue;
+    }
     default:
       /* Unknown opcode – ignore to allow graceful failure */
       break;
@@ -111,21 +145,6 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
 }
 
 /* ----- Persistent executor thread ----- */
-
-typedef struct sm_job {
-  sm_instr *instr;
-  struct sm_job *next;
-} sm_job;
-
-typedef struct sm_ctx {
-  sm_vm vm;
-  sm_job *head;
-  sm_job *tail;
-  pthread_mutex_t lock;
-  pthread_cond_t cond;
-  pthread_t thread;
-  bool running;
-} sm_ctx;
 
 static void *sm_worker(void *arg) {
   sm_ctx *ctx = arg;
@@ -141,9 +160,20 @@ static void *sm_worker(void *arg) {
     ctx->head = j->next;
     if (!ctx->head)
       ctx->tail = NULL;
+    ctx->job_done = false;
     pthread_mutex_unlock(&ctx->lock);
 
+    current_ctx = ctx;
     sm_execute(j->instr, &ctx->vm);
+    current_ctx = NULL;
+
+    pthread_mutex_lock(&ctx->lock);
+    if (!ctx->job_done) {
+      ctx->job_value = 0;
+      ctx->job_done = true;
+      pthread_cond_signal(&ctx->done_cond);
+    }
+    pthread_mutex_unlock(&ctx->lock);
     free(j);
   }
   return NULL;
@@ -155,10 +185,12 @@ sm_ctx *sm_thread_start(void) {
     return NULL;
   pthread_mutex_init(&ctx->lock, NULL);
   pthread_cond_init(&ctx->cond, NULL);
+  pthread_cond_init(&ctx->done_cond, NULL);
   ctx->running = true;
   if (pthread_create(&ctx->thread, NULL, sm_worker, ctx) != 0) {
     ctx->running = false;
     pthread_cond_destroy(&ctx->cond);
+    pthread_cond_destroy(&ctx->done_cond);
     pthread_mutex_destroy(&ctx->lock);
     free(ctx);
     return NULL;
@@ -175,6 +207,7 @@ void sm_thread_stop(sm_ctx *ctx) {
   pthread_mutex_unlock(&ctx->lock);
   pthread_join(ctx->thread, NULL);
   pthread_cond_destroy(&ctx->cond);
+  pthread_cond_destroy(&ctx->done_cond);
   pthread_mutex_destroy(&ctx->lock);
   free(ctx);
 }
@@ -193,6 +226,7 @@ void sm_submit(sm_ctx *ctx, sm_instr *chain) {
   else
     ctx->head = j;
   ctx->tail = j;
+  ctx->job_done = false;
   pthread_cond_signal(&ctx->cond);
   pthread_mutex_unlock(&ctx->lock);
 }
@@ -204,4 +238,15 @@ sm_reg sm_get_reg(sm_ctx *ctx, int idx) {
   sm_reg val = ctx->vm.regs[idx];
   pthread_mutex_unlock(&ctx->lock);
   return val;
+}
+
+void sm_wait(sm_ctx *ctx, int *value) {
+  if (!ctx)
+    return;
+  pthread_mutex_lock(&ctx->lock);
+  while (!ctx->job_done)
+    pthread_cond_wait(&ctx->done_cond, &ctx->lock);
+  if (value)
+    *value = ctx->job_value;
+  pthread_mutex_unlock(&ctx->lock);
 }
