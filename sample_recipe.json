@@ -1,0 +1,13 @@
+[
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 0, "value": "/tmp" } },
+  { "op": "SM_OP_RANDOM_RANGE",  "data": { "dest": 1, "min": 2, "max": 2 } },
+  { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 2, "root": 0, "depth": 1 } },
+  { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 3, "root": 0, "depth": 1 } },
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 4, "value": "/path/to/archive.tar" } },
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 5, "value": "dir" } },
+  { "op": "SM_OP_FS_CREATE",     "data": { "dest": 6, "path": 2, "type": 5 } },
+  { "op": "SM_OP_FS_CREATE",     "data": { "dest": 7, "path": 3, "type": 5 } },
+  { "op": "SM_OP_FS_UNPACK",     "data": { "tar_path": 4, "dest": 2 } },
+  { "op": "SM_OP_REPORT",        "data": { "regs": [2, 3] } },
+  { "op": "SM_OP_RETURN",        "data": { "value": 0 } }
+]
