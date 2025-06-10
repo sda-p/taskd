@@ -62,6 +62,12 @@ Additional opcodes provide utility functions:
   string in `list`.
 - `SM_OP_RANDOM_RANGE` – store a pseudo-random integer between `min` and `max`
   (inclusive) in `dest`.
+- `SM_OP_PATH_JOIN` – join `base` and `name` with a slash and store the new
+  path in `dest`.
+- `SM_OP_RANDOM_WALK` – starting from `root`, walk `depth` random directory
+  levels and store the resulting path in `dest`.
+- `SM_OP_DIR_CONTAINS` – set `dest` to non-zero if directory `a` is fully
+  contained within directory `b`.
 
 ## Example recipe
 
