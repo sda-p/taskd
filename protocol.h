@@ -17,6 +17,39 @@ typedef struct {
   char value[128];
 } proto_msg;
 
+typedef struct {
+  char greeting[32];
+  int version;
+} handshake_msg;
+
+static inline bool parse_handshake(const char *json, handshake_msg *out) {
+  if (!json || !out)
+    return false;
+  cJSON *root = cJSON_Parse(json);
+  if (!root)
+    return false;
+  cJSON *g = cJSON_GetObjectItemCaseSensitive(root, "hello");
+  cJSON *v = cJSON_GetObjectItemCaseSensitive(root, "version");
+  bool ok = cJSON_IsString(g) && cJSON_IsNumber(v);
+  if (ok) {
+    strncpy(out->greeting, g->valuestring, sizeof(out->greeting) - 1);
+    out->greeting[sizeof(out->greeting) - 1] = '\0';
+    out->version = v->valueint;
+  }
+  cJSON_Delete(root);
+  return ok;
+}
+
+static inline char *report_status(int status) {
+  cJSON *root = cJSON_CreateObject();
+  if (!root)
+    return NULL;
+  cJSON_AddNumberToObject(root, "status", status);
+  char *out = cJSON_PrintUnformatted(root);
+  cJSON_Delete(root);
+  return out;
+}
+
 static inline bool proto_parse(const char *json, proto_msg *out) {
   if (!json || !out)
     return false;

@@ -134,21 +134,32 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    /* Receive a JSON message or recipe */
+    /* First message must be a handshake */
     char *msg = proto_recv_json(client_fd);
+    int status_code = -1;
+    bool handshake_ok = false;
     if (msg) {
-      proto_msg req;
-      if (proto_parse(msg, &req)) {
-        proto_msg resp = {"ACK", "ok"};
-        proto_send(client_fd, &resp);
-      } else {
-        sm_instr *recipe = proto_parse_recipe(msg);
-        if (recipe) {
-          sm_submit(g_sm_ctx, recipe);
-          proto_msg resp = {"ACK", "recipe"};
-          proto_send(client_fd, &resp);
-        }
-      }
+      handshake_msg hs;
+      handshake_ok = parse_handshake(msg, &hs);
+      free(msg);
+      status_code = handshake_ok ? 0 : -1;
+    }
+    char *status_msg = report_status(status_code);
+    if (status_msg) {
+      send(client_fd, status_msg, strlen(status_msg), MSG_NOSIGNAL);
+      free(status_msg);
+    }
+    if (!handshake_ok) {
+      close(client_fd);
+      continue;
+    }
+
+    /* Wait for recipe */
+    msg = proto_recv_json(client_fd);
+    if (msg) {
+      sm_instr *recipe = proto_parse_recipe(msg);
+      if (recipe)
+        sm_submit(g_sm_ctx, recipe);
       free(msg);
     }
     close(client_fd);
