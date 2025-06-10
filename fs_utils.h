@@ -292,6 +292,41 @@ static inline const char *rand_choice(const char **options, size_t count) {
   return options[idx];
 }
 
+static inline char *list_index(const char *list, size_t idx) {
+  if (!list)
+    return NULL;
+  const char *start = list;
+  while (idx > 0 && *start) {
+    const char *nl = strchr(start, '\n');
+    if (!nl)
+      return NULL;
+    start = nl + 1;
+    --idx;
+  }
+  if (*start == '\0')
+    return NULL;
+  const char *end = strchr(start, '\n');
+  size_t len = end ? (size_t)(end - start) : strlen(start);
+  char *out = malloc(len + 1);
+  if (!out)
+    return NULL;
+  memcpy(out, start, len);
+  out[len] = '\0';
+  return out;
+}
+
+static inline long rand_range(long min, long max) {
+  if (max < min) {
+    long tmp = min;
+    min = max;
+    max = tmp;
+  }
+  long diff = max - min + 1;
+  if (diff <= 0)
+    return min;
+  return (long)(rand() % diff) + min;
+}
+
 static inline void seed_apply(unsigned int seed) { srand(seed); }
 
 #ifdef __cplusplus

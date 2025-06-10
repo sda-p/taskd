@@ -25,6 +25,8 @@ typedef enum {
   SM_OP_NOT,
   SM_OP_AND,
   SM_OP_OR,
+  SM_OP_INDEX_SELECT,
+  SM_OP_RANDOM_RANGE,
   SM_OP_RETURN,
 } sm_opcode;
 
@@ -112,6 +114,18 @@ typedef struct {
   int lhs;
   int rhs;
 } sm_or;
+
+typedef struct {
+  int dest;
+  int list;
+  int index;
+} sm_index_select;
+
+typedef struct {
+  int dest;
+  int min;
+  int max;
+} sm_random_range;
 
 typedef struct {
   int value;
