@@ -201,6 +201,39 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       vm->regs[a->dest] = (void *)(uintptr_t)val;
       break;
     }
+    case SM_OP_PATH_JOIN: {
+      sm_path_join *a = (sm_path_join *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->base) ||
+          !reg_valid(a->name))
+        break;
+      const char *base = (const char *)vm->regs[a->base];
+      const char *name = (const char *)vm->regs[a->name];
+      char *out = (base && name) ? path_join(base, name) : NULL;
+      vm->regs[a->dest] = out;
+      break;
+    }
+    case SM_OP_RANDOM_WALK: {
+      sm_random_walk *a = (sm_random_walk *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->root) ||
+          !reg_valid(a->depth))
+        break;
+      const char *root = (const char *)vm->regs[a->root];
+      int depth = (int)(uintptr_t)vm->regs[a->depth];
+      char *out = root ? fs_random_walk(root, depth) : NULL;
+      vm->regs[a->dest] = out;
+      break;
+    }
+    case SM_OP_DIR_CONTAINS: {
+      sm_dir_contains *a = (sm_dir_contains *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->dir_a) ||
+          !reg_valid(a->dir_b))
+        break;
+      const char *ap = (const char *)vm->regs[a->dir_a];
+      const char *bp = (const char *)vm->regs[a->dir_b];
+      bool ok = (ap && bp) ? fs_dir_contains(ap, bp) : false;
+      vm->regs[a->dest] = (void *)(uintptr_t)ok;
+      break;
+    }
     case SM_OP_RETURN: {
       sm_return *a = (sm_return *)cur->data;
       int val = a ? a->value : 0;

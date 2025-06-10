@@ -139,6 +139,9 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_OR", SM_OP_OR},
       {"SM_OP_INDEX_SELECT", SM_OP_INDEX_SELECT},
       {"SM_OP_RANDOM_RANGE", SM_OP_RANDOM_RANGE},
+      {"SM_OP_PATH_JOIN", SM_OP_PATH_JOIN},
+      {"SM_OP_RANDOM_WALK", SM_OP_RANDOM_WALK},
+      {"SM_OP_DIR_CONTAINS", SM_OP_DIR_CONTAINS},
       {"SM_OP_RETURN", SM_OP_RETURN},
   };
   for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); ++i) {
@@ -442,6 +445,59 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       d->dest = dest->valueint;
       d->min = min->valueint;
       d->max = max->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_PATH_JOIN: {
+      sm_path_join *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *base = cJSON_GetObjectItemCaseSensitive(data, "base");
+      cJSON *name = cJSON_GetObjectItemCaseSensitive(data, "name");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(base) ||
+          !cJSON_IsNumber(name)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->base = base->valueint;
+      d->name = name->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_RANDOM_WALK: {
+      sm_random_walk *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *root = cJSON_GetObjectItemCaseSensitive(data, "root");
+      cJSON *depth = cJSON_GetObjectItemCaseSensitive(data, "depth");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(root) ||
+          !cJSON_IsNumber(depth)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->root = root->valueint;
+      d->depth = depth->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_DIR_CONTAINS: {
+      sm_dir_contains *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *a = cJSON_GetObjectItemCaseSensitive(data, "a");
+      cJSON *b = cJSON_GetObjectItemCaseSensitive(data, "b");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(a) || !cJSON_IsNumber(b)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->dir_a = a->valueint;
+      d->dir_b = b->valueint;
       ins->data = d;
       break;
     }

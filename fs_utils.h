@@ -22,6 +22,8 @@
 extern "C" {
 #endif
 
+static inline long rand_range(long min, long max);
+
 static inline bool fs_create(const char *path, const char *type) {
   if (!path || !type)
     return false;
@@ -313,6 +315,93 @@ static inline char *list_index(const char *list, size_t idx) {
   memcpy(out, start, len);
   out[len] = '\0';
   return out;
+}
+
+static inline char *path_join(const char *base, const char *name) {
+  if (!base || !name)
+    return NULL;
+  size_t lb = strlen(base);
+  size_t ln = strlen(name);
+  size_t need = lb + ln + 2;
+  char *out = malloc(need);
+  if (!out)
+    return NULL;
+  memcpy(out, base, lb);
+  if (lb > 0 && base[lb - 1] != '/')
+    out[lb++] = '/';
+  memcpy(out + lb, name, ln);
+  out[lb + ln] = '\0';
+  return out;
+}
+
+static inline char *fs_random_walk(const char *root, int depth) {
+  if (!root || depth < 0)
+    return NULL;
+  char *cur = strdup(root);
+  if (!cur)
+    return NULL;
+  for (int i = 0; i < depth; ++i) {
+    char *list = fs_list_dir(cur);
+    if (!list || list[0] == '\0') {
+      free(list);
+      break;
+    }
+    size_t count = 0;
+    for (const char *p = list; *p; ++p)
+      if (*p == '\n')
+        ++count;
+    if (count == 0) {
+      free(list);
+      break;
+    }
+    long idx = rand_range(0, (long)count - 1);
+    char *next = list_index(list, (size_t)idx);
+    free(list);
+    if (!next)
+      break;
+    char *tmp = path_join(cur, next);
+    free(cur);
+    free(next);
+    if (!tmp)
+      return NULL;
+    cur = tmp;
+  }
+  return cur;
+}
+
+static inline bool dir_contains_recursive(const char *a, const char *b) {
+  struct stat sa, sb;
+  if (lstat(a, &sa) != 0 || lstat(b, &sb) != 0)
+    return false;
+  if (S_ISDIR(sa.st_mode)) {
+    if (!S_ISDIR(sb.st_mode))
+      return false;
+    DIR *d = opendir(a);
+    if (!d)
+      return false;
+    struct dirent *e;
+    char pa[PATH_MAX];
+    char pb[PATH_MAX];
+    while ((e = readdir(d)) != NULL) {
+      if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
+        continue;
+      snprintf(pa, sizeof(pa), "%s/%s", a, e->d_name);
+      snprintf(pb, sizeof(pb), "%s/%s", b, e->d_name);
+      if (!dir_contains_recursive(pa, pb)) {
+        closedir(d);
+        return false;
+      }
+    }
+    closedir(d);
+    return true;
+  }
+  return lstat(b, &sb) == 0;
+}
+
+static inline bool fs_dir_contains(const char *a, const char *b) {
+  if (!a || !b)
+    return false;
+  return dir_contains_recursive(a, b);
 }
 
 static inline long rand_range(long min, long max) {

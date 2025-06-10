@@ -27,6 +27,9 @@ typedef enum {
   SM_OP_OR,
   SM_OP_INDEX_SELECT,
   SM_OP_RANDOM_RANGE,
+  SM_OP_PATH_JOIN,
+  SM_OP_RANDOM_WALK,
+  SM_OP_DIR_CONTAINS,
   SM_OP_RETURN,
 } sm_opcode;
 
@@ -126,6 +129,24 @@ typedef struct {
   int min;
   int max;
 } sm_random_range;
+
+typedef struct {
+  int dest;
+  int base;
+  int name;
+} sm_path_join;
+
+typedef struct {
+  int dest;
+  int root;
+  int depth;
+} sm_random_walk;
+
+typedef struct {
+  int dest;
+  int dir_a;
+  int dir_b;
+} sm_dir_contains;
 
 typedef struct {
   int value;
