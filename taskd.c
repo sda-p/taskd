@@ -134,11 +134,22 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    /* Receive a JSON message, then reply */
-    proto_msg req;
-    if (proto_recv(client_fd, &req)) {
-      proto_msg resp = {"ACK", "ok"};
-      proto_send(client_fd, &resp);
+    /* Receive a JSON message or recipe */
+    char *msg = proto_recv_json(client_fd);
+    if (msg) {
+      proto_msg req;
+      if (proto_parse(msg, &req)) {
+        proto_msg resp = {"ACK", "ok"};
+        proto_send(client_fd, &resp);
+      } else {
+        sm_instr *recipe = proto_parse_recipe(msg);
+        if (recipe) {
+          sm_submit(g_sm_ctx, recipe);
+          proto_msg resp = {"ACK", "recipe"};
+          proto_send(client_fd, &resp);
+        }
+      }
+      free(msg);
     }
     close(client_fd);
   }

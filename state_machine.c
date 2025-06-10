@@ -17,47 +17,6 @@ typedef struct sm_vm {
 /* Helper to validate register indices */
 static inline bool reg_valid(int idx) { return idx >= 0 && idx < SM_REG_COUNT; }
 
-/* ----- Operation data structures ----- */
-typedef struct {
-  int dest; /* register index to store the constant */
-  const void *value;
-} sm_load_const;
-
-typedef struct {
-  int dest; /* store bool result */
-  int path; /* register index with const char *path */
-  int type; /* register index with const char *"dir" or "file" */
-} sm_fs_create;
-
-typedef struct {
-  int dest;
-  int path;
-} sm_fs_delete;
-
-typedef struct {
-  int dest;
-  int src;
-  int dst;
-} sm_fs_copy;
-
-typedef struct {
-  int dest;
-  int src;
-  int dst;
-} sm_fs_move;
-
-typedef struct {
-  int dest;    /* bool result */
-  int path;    /* char * */
-  int content; /* char * */
-  int mode;    /* char * */
-} sm_fs_write;
-
-typedef struct {
-  int dest; /* store char* (fs_read allocates) */
-  int path;
-} sm_fs_read;
-
 /* ----- State machine executor ----- */
 void sm_execute(sm_instr *head, sm_vm *vm) {
   if (!vm)
@@ -131,6 +90,16 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       const char *p = (const char *)vm->regs[a->path];
       char *buf = p ? fs_read(p) : NULL;
       vm->regs[a->dest] = buf;
+      break;
+    }
+    case SM_OP_FS_UNPACK: {
+      sm_fs_unpack *a = (sm_fs_unpack *)cur->data;
+      if (!a || !reg_valid(a->tar_path) || !reg_valid(a->dest))
+        break;
+      const char *t = (const char *)vm->regs[a->tar_path];
+      const char *d = (const char *)vm->regs[a->dest];
+      if (t && d)
+        fs_unpack(t, d);
       break;
     }
     default:

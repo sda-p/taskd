@@ -18,6 +18,7 @@ typedef enum {
   SM_OP_FS_MOVE,
   SM_OP_FS_WRITE,
   SM_OP_FS_READ,
+  SM_OP_FS_UNPACK,
 } sm_opcode;
 
 typedef struct sm_instr {
@@ -25,6 +26,52 @@ typedef struct sm_instr {
   void *data;
   struct sm_instr *next;
 } sm_instr;
+
+/* Operation data structures */
+typedef struct {
+  int dest;
+  const void *value;
+} sm_load_const;
+
+typedef struct {
+  int dest;
+  int path;
+  int type;
+} sm_fs_create;
+
+typedef struct {
+  int dest;
+  int path;
+} sm_fs_delete;
+
+typedef struct {
+  int dest;
+  int src;
+  int dst;
+} sm_fs_copy;
+
+typedef struct {
+  int dest;
+  int src;
+  int dst;
+} sm_fs_move;
+
+typedef struct {
+  int dest;
+  int path;
+  int content;
+  int mode;
+} sm_fs_write;
+
+typedef struct {
+  int dest;
+  int path;
+} sm_fs_read;
+
+typedef struct {
+  int tar_path;
+  int dest;
+} sm_fs_unpack;
 
 typedef struct sm_ctx sm_ctx;
 
