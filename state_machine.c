@@ -177,6 +177,30 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       vm->regs[a->dest] = (void *)(uintptr_t)(l || r);
       break;
     }
+    case SM_OP_INDEX_SELECT: {
+      sm_index_select *a = (sm_index_select *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->list) ||
+          !reg_valid(a->index))
+        break;
+      const char *list = (const char *)vm->regs[a->list];
+      size_t idx = (size_t)(uintptr_t)vm->regs[a->index];
+      char *out = NULL;
+      if (list) {
+        out = list_index(list, idx);
+      }
+      vm->regs[a->dest] = out;
+      break;
+    }
+    case SM_OP_RANDOM_RANGE: {
+      sm_random_range *a = (sm_random_range *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->min) || !reg_valid(a->max))
+        break;
+      long min = (long)(uintptr_t)vm->regs[a->min];
+      long max = (long)(uintptr_t)vm->regs[a->max];
+      long val = rand_range(min, max);
+      vm->regs[a->dest] = (void *)(uintptr_t)val;
+      break;
+    }
     case SM_OP_RETURN: {
       sm_return *a = (sm_return *)cur->data;
       int val = a ? a->value : 0;

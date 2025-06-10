@@ -58,6 +58,10 @@ Additional opcodes provide utility functions:
 - `SM_OP_EQ` – compare two registers for equality.
 - `SM_OP_NOT` – logical negation of a register value.
 - `SM_OP_AND` / `SM_OP_OR` – logical conjunction/disjunction of two registers.
+- `SM_OP_INDEX_SELECT` – extract the item at `index` from a newline separated
+  string in `list`.
+- `SM_OP_RANDOM_RANGE` – store a pseudo-random integer between `min` and `max`
+  (inclusive) in `dest`.
 
 ## Example recipe
 
