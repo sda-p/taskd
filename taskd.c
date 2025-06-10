@@ -84,6 +84,12 @@ static void daemonize(void) {
 
 static sm_ctx *g_sm_ctx = NULL;
 
+static void report_fd_cb(const char *json, void *ud) {
+  int fd = *(int *)ud;
+  if (json)
+    send(fd, json, strlen(json), MSG_NOSIGNAL);
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     fprintf(stderr, "Usage: %s <vsock-port>\n", argv[0]);
@@ -159,10 +165,12 @@ int main(int argc, char *argv[]) {
     if (msg) {
       sm_instr *recipe = proto_parse_recipe(msg);
       if (recipe) {
+        sm_set_report_cb(g_sm_ctx, report_fd_cb, &client_fd);
         sm_submit(g_sm_ctx, recipe);
         free(msg);
         int ret = 0;
         sm_wait(g_sm_ctx, &ret);
+        sm_set_report_cb(g_sm_ctx, NULL, NULL);
         char *done = report_status(0);
         if (done) {
           send(client_fd, done, strlen(done), MSG_NOSIGNAL);

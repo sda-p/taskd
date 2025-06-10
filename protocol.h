@@ -142,6 +142,7 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_PATH_JOIN", SM_OP_PATH_JOIN},
       {"SM_OP_RANDOM_WALK", SM_OP_RANDOM_WALK},
       {"SM_OP_DIR_CONTAINS", SM_OP_DIR_CONTAINS},
+      {"SM_OP_REPORT", SM_OP_REPORT},
       {"SM_OP_RETURN", SM_OP_RETURN},
   };
   for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); ++i) {
@@ -498,6 +499,37 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       d->dest = dest->valueint;
       d->dir_a = a->valueint;
       d->dir_b = b->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_REPORT: {
+      sm_report *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *regs = cJSON_GetObjectItemCaseSensitive(data, "regs");
+      if (!cJSON_IsArray(regs)) {
+        free(d);
+        break;
+      }
+      int n = cJSON_GetArraySize(regs);
+      if (n <= 0 || n > SM_REG_COUNT) {
+        free(d);
+        break;
+      }
+      d->count = n;
+      bool ok = true;
+      for (int i = 0; i < n; ++i) {
+        cJSON *it = cJSON_GetArrayItem(regs, i);
+        if (!cJSON_IsNumber(it)) {
+          ok = false;
+          break;
+        }
+        d->regs[i] = it->valueint;
+      }
+      if (!ok) {
+        free(d);
+        break;
+      }
       ins->data = d;
       break;
     }
