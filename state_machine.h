@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#define SM_REG_COUNT 8
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,6 +32,7 @@ typedef enum {
   SM_OP_PATH_JOIN,
   SM_OP_RANDOM_WALK,
   SM_OP_DIR_CONTAINS,
+  SM_OP_REPORT,
   SM_OP_RETURN,
 } sm_opcode;
 
@@ -149,6 +152,11 @@ typedef struct {
 } sm_dir_contains;
 
 typedef struct {
+  int count;
+  int regs[SM_REG_COUNT];
+} sm_report;
+
+typedef struct {
   int value;
 } sm_return;
 
@@ -159,6 +167,8 @@ void sm_thread_stop(sm_ctx *ctx);
 void sm_submit(sm_ctx *ctx, sm_instr *chain);
 sm_reg sm_get_reg(sm_ctx *ctx, int idx);
 void sm_wait(sm_ctx *ctx, int *value);
+typedef void (*sm_report_cb)(const char *json, void *user);
+void sm_set_report_cb(sm_ctx *ctx, sm_report_cb cb, void *user);
 
 /* Existing executor for direct use */
 typedef struct sm_vm sm_vm;

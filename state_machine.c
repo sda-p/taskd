@@ -1,13 +1,12 @@
 #define _GNU_SOURCE
 #include "state_machine.h"
 #include "fs_utils.h"
+#include <cJSON.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#define SM_REG_COUNT 8
 
 /* Generic VM context with a fixed-width register array */
 typedef struct sm_vm {
@@ -31,6 +30,8 @@ typedef struct sm_ctx {
   pthread_cond_t done_cond;
   bool job_done;
   int job_value;
+  sm_report_cb report_cb;
+  void *report_ud;
   pthread_t thread;
   bool running;
 } sm_ctx;
@@ -234,6 +235,34 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       vm->regs[a->dest] = (void *)(uintptr_t)ok;
       break;
     }
+    case SM_OP_REPORT: {
+      sm_report *a = (sm_report *)cur->data;
+      if (!a || a->count <= 0 || a->count > SM_REG_COUNT)
+        break;
+      if (current_ctx && current_ctx->report_cb) {
+        cJSON *root = cJSON_CreateObject();
+        cJSON *arr = cJSON_CreateArray();
+        for (int i = 0; i < a->count; ++i) {
+          if (!reg_valid(a->regs[i]))
+            continue;
+          uintptr_t v = (uintptr_t)vm->regs[a->regs[i]];
+          cJSON *item = NULL;
+          if (v < 4096)
+            item = cJSON_CreateNumber((double)v);
+          else
+            item = cJSON_CreateString(v ? (const char *)v : "");
+          cJSON_AddItemToArray(arr, item);
+        }
+        cJSON_AddItemToObject(root, "values", arr);
+        char *out = cJSON_PrintUnformatted(root);
+        if (out) {
+          current_ctx->report_cb(out, current_ctx->report_ud);
+          free(out);
+        }
+        cJSON_Delete(root);
+      }
+      break;
+    }
     case SM_OP_RETURN: {
       sm_return *a = (sm_return *)cur->data;
       int val = a ? a->value : 0;
@@ -297,6 +326,8 @@ sm_ctx *sm_thread_start(void) {
   pthread_mutex_init(&ctx->lock, NULL);
   pthread_cond_init(&ctx->cond, NULL);
   pthread_cond_init(&ctx->done_cond, NULL);
+  ctx->report_cb = NULL;
+  ctx->report_ud = NULL;
   ctx->running = true;
   if (pthread_create(&ctx->thread, NULL, sm_worker, ctx) != 0) {
     ctx->running = false;
@@ -349,6 +380,15 @@ sm_reg sm_get_reg(sm_ctx *ctx, int idx) {
   sm_reg val = ctx->vm.regs[idx];
   pthread_mutex_unlock(&ctx->lock);
   return val;
+}
+
+void sm_set_report_cb(sm_ctx *ctx, sm_report_cb cb, void *user) {
+  if (!ctx)
+    return;
+  pthread_mutex_lock(&ctx->lock);
+  ctx->report_cb = cb;
+  ctx->report_ud = user;
+  pthread_mutex_unlock(&ctx->lock);
 }
 
 void sm_wait(sm_ctx *ctx, int *value) {

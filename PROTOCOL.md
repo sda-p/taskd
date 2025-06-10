@@ -68,6 +68,13 @@ Additional opcodes provide utility functions:
   levels and store the resulting path in `dest`.
 - `SM_OP_DIR_CONTAINS` – set `dest` to non-zero if directory `a` is fully
   contained within directory `b`.
+- `SM_OP_REPORT` – send a protocol message back to the host containing the
+  contents of the specified registers as a JSON array.
+
+`SM_OP_REPORT` requires a `regs` field listing which register indices should be
+included in the outbound message. When executed, the daemon builds a JSON object
+`{"values": [ ... ]}` and sends it over the active vsock connection before
+continuing with the recipe.
 
 ## Example recipe
 
