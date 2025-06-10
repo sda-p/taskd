@@ -123,6 +123,60 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
         fs_unpack(t, d);
       break;
     }
+    case SM_OP_FS_HASH: {
+      sm_fs_hash *a = (sm_fs_hash *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
+        break;
+      const char *p = (const char *)vm->regs[a->path];
+      char *h = p ? fs_hash(p) : NULL;
+      vm->regs[a->dest] = h;
+      break;
+    }
+    case SM_OP_FS_LIST: {
+      sm_fs_list *a = (sm_fs_list *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
+        break;
+      const char *p = (const char *)vm->regs[a->path];
+      char *list = p ? fs_list_dir(p) : NULL;
+      vm->regs[a->dest] = list;
+      break;
+    }
+    case SM_OP_EQ: {
+      sm_eq *a = (sm_eq *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
+        break;
+      uintptr_t l = (uintptr_t)vm->regs[a->lhs];
+      uintptr_t r = (uintptr_t)vm->regs[a->rhs];
+      bool eq = l == r;
+      vm->regs[a->dest] = (void *)(uintptr_t)eq;
+      break;
+    }
+    case SM_OP_NOT: {
+      sm_not *a = (sm_not *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->src))
+        break;
+      bool v = (uintptr_t)vm->regs[a->src] != 0;
+      vm->regs[a->dest] = (void *)(uintptr_t)(!v);
+      break;
+    }
+    case SM_OP_AND: {
+      sm_and *a = (sm_and *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
+        break;
+      bool l = (uintptr_t)vm->regs[a->lhs] != 0;
+      bool r = (uintptr_t)vm->regs[a->rhs] != 0;
+      vm->regs[a->dest] = (void *)(uintptr_t)(l && r);
+      break;
+    }
+    case SM_OP_OR: {
+      sm_or *a = (sm_or *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
+        break;
+      bool l = (uintptr_t)vm->regs[a->lhs] != 0;
+      bool r = (uintptr_t)vm->regs[a->rhs] != 0;
+      vm->regs[a->dest] = (void *)(uintptr_t)(l || r);
+      break;
+    }
     case SM_OP_RETURN: {
       sm_return *a = (sm_return *)cur->data;
       int val = a ? a->value : 0;

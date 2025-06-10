@@ -19,6 +19,12 @@ typedef enum {
   SM_OP_FS_WRITE,
   SM_OP_FS_READ,
   SM_OP_FS_UNPACK,
+  SM_OP_FS_HASH,
+  SM_OP_FS_LIST,
+  SM_OP_EQ,
+  SM_OP_NOT,
+  SM_OP_AND,
+  SM_OP_OR,
   SM_OP_RETURN,
 } sm_opcode;
 
@@ -73,6 +79,39 @@ typedef struct {
   int tar_path;
   int dest;
 } sm_fs_unpack;
+
+typedef struct {
+  int dest;
+  int path;
+} sm_fs_hash;
+
+typedef struct {
+  int dest;
+  int path;
+} sm_fs_list;
+
+typedef struct {
+  int dest;
+  int lhs;
+  int rhs;
+} sm_eq;
+
+typedef struct {
+  int dest;
+  int src;
+} sm_not;
+
+typedef struct {
+  int dest;
+  int lhs;
+  int rhs;
+} sm_and;
+
+typedef struct {
+  int dest;
+  int lhs;
+  int rhs;
+} sm_or;
 
 typedef struct {
   int value;

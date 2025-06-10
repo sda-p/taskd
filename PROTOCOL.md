@@ -51,6 +51,14 @@ register indices. File system instructions (create, copy, move, etc.) use these
 registers for their parameters and store success (non-zero) or result pointers in
 a destination register.
 
+Additional opcodes provide utility functions:
+
+- `SM_OP_FS_HASH` – compute an xxHash64 of the file at `path`.
+- `SM_OP_FS_LIST` – list directory entries separated by newlines.
+- `SM_OP_EQ` – compare two registers for equality.
+- `SM_OP_NOT` – logical negation of a register value.
+- `SM_OP_AND` / `SM_OP_OR` – logical conjunction/disjunction of two registers.
+
 ## Example recipe
 
 Below is a minimal recipe that creates an empty file `/tmp/hello.txt`.

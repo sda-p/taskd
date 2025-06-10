@@ -1,6 +1,7 @@
 #ifndef FS_UTILS_H
 #define FS_UTILS_H
 
+#include "xxhash.h"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -185,6 +186,68 @@ static inline char *fs_read(const char *path) {
   buf[sz] = '\0';
   fclose(f);
   return buf;
+}
+
+static inline char *fs_list_dir(const char *path) {
+  DIR *d = opendir(path);
+  if (!d)
+    return NULL;
+  size_t cap = 256, len = 0;
+  char *buf = malloc(cap);
+  if (!buf) {
+    closedir(d);
+    return NULL;
+  }
+  struct dirent *e;
+  while ((e = readdir(d)) != NULL) {
+    if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
+      continue;
+    size_t n = strlen(e->d_name);
+    if (len + n + 2 > cap) {
+      cap = (cap + n + 2) * 2;
+      char *tmp = realloc(buf, cap);
+      if (!tmp) {
+        free(buf);
+        closedir(d);
+        return NULL;
+      }
+      buf = tmp;
+    }
+    memcpy(buf + len, e->d_name, n);
+    len += n;
+    buf[len++] = '\n';
+  }
+  closedir(d);
+  if (len == 0) {
+    free(buf);
+    return strdup("");
+  }
+  buf[len] = '\0';
+  return buf;
+}
+
+static inline char *fs_hash(const char *path) {
+  FILE *f = fopen(path, "rb");
+  if (!f)
+    return NULL;
+  XXH64_state_t *st = XXH64_createState();
+  if (!st) {
+    fclose(f);
+    return NULL;
+  }
+  XXH64_reset(st, 0);
+  char buf[8192];
+  size_t n;
+  while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+    XXH64_update(st, buf, n);
+  fclose(f);
+  unsigned long long h = XXH64_digest(st);
+  XXH64_freeState(st);
+  char *out = malloc(17);
+  if (!out)
+    return NULL;
+  snprintf(out, 17, "%016llx", h);
+  return out;
 }
 
 static inline bool fs_unpack(const char *tar_path, const char *dest) {
