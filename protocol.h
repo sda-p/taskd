@@ -131,6 +131,12 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_FS_WRITE", SM_OP_FS_WRITE},
       {"SM_OP_FS_READ", SM_OP_FS_READ},
       {"SM_OP_FS_UNPACK", SM_OP_FS_UNPACK},
+      {"SM_OP_FS_HASH", SM_OP_FS_HASH},
+      {"SM_OP_FS_LIST", SM_OP_FS_LIST},
+      {"SM_OP_EQ", SM_OP_EQ},
+      {"SM_OP_NOT", SM_OP_NOT},
+      {"SM_OP_AND", SM_OP_AND},
+      {"SM_OP_OR", SM_OP_OR},
       {"SM_OP_RETURN", SM_OP_RETURN},
   };
   for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); ++i) {
@@ -299,6 +305,105 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       }
       d->tar_path = tar_path->valueint;
       d->dest = dest->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_FS_HASH: {
+      sm_fs_hash *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *path = cJSON_GetObjectItemCaseSensitive(data, "path");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(path)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->path = path->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_FS_LIST: {
+      sm_fs_list *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *path = cJSON_GetObjectItemCaseSensitive(data, "path");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(path)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->path = path->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_EQ: {
+      sm_eq *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *lhs = cJSON_GetObjectItemCaseSensitive(data, "lhs");
+      cJSON *rhs = cJSON_GetObjectItemCaseSensitive(data, "rhs");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(lhs) ||
+          !cJSON_IsNumber(rhs)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->lhs = lhs->valueint;
+      d->rhs = rhs->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_NOT: {
+      sm_not *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *src = cJSON_GetObjectItemCaseSensitive(data, "src");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(src)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->src = src->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_AND: {
+      sm_and *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *lhs = cJSON_GetObjectItemCaseSensitive(data, "lhs");
+      cJSON *rhs = cJSON_GetObjectItemCaseSensitive(data, "rhs");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(lhs) ||
+          !cJSON_IsNumber(rhs)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->lhs = lhs->valueint;
+      d->rhs = rhs->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_OR: {
+      sm_or *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *lhs = cJSON_GetObjectItemCaseSensitive(data, "lhs");
+      cJSON *rhs = cJSON_GetObjectItemCaseSensitive(data, "rhs");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(lhs) ||
+          !cJSON_IsNumber(rhs)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->lhs = lhs->valueint;
+      d->rhs = rhs->valueint;
       ins->data = d;
       break;
     }
