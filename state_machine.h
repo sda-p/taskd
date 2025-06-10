@@ -19,6 +19,7 @@ typedef enum {
   SM_OP_FS_WRITE,
   SM_OP_FS_READ,
   SM_OP_FS_UNPACK,
+  SM_OP_RETURN,
 } sm_opcode;
 
 typedef struct sm_instr {
@@ -73,12 +74,17 @@ typedef struct {
   int dest;
 } sm_fs_unpack;
 
+typedef struct {
+  int value;
+} sm_return;
+
 typedef struct sm_ctx sm_ctx;
 
 sm_ctx *sm_thread_start(void);
 void sm_thread_stop(sm_ctx *ctx);
 void sm_submit(sm_ctx *ctx, sm_instr *chain);
 sm_reg sm_get_reg(sm_ctx *ctx, int idx);
+void sm_wait(sm_ctx *ctx, int *value);
 
 /* Existing executor for direct use */
 typedef struct sm_vm sm_vm;

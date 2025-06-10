@@ -131,6 +131,7 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_FS_WRITE", SM_OP_FS_WRITE},
       {"SM_OP_FS_READ", SM_OP_FS_READ},
       {"SM_OP_FS_UNPACK", SM_OP_FS_UNPACK},
+      {"SM_OP_RETURN", SM_OP_RETURN},
   };
   for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); ++i) {
     if (strcmp(s, map[i].name) == 0) {
@@ -298,6 +299,19 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       }
       d->tar_path = tar_path->valueint;
       d->dest = dest->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_RETURN: {
+      sm_return *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *val = cJSON_GetObjectItemCaseSensitive(data, "value");
+      if (!cJSON_IsNumber(val)) {
+        free(d);
+        break;
+      }
+      d->value = val->valueint;
       ins->data = d;
       break;
     }

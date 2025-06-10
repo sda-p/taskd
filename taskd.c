@@ -158,9 +158,19 @@ int main(int argc, char *argv[]) {
     msg = proto_recv_json(client_fd);
     if (msg) {
       sm_instr *recipe = proto_parse_recipe(msg);
-      if (recipe)
+      if (recipe) {
         sm_submit(g_sm_ctx, recipe);
-      free(msg);
+        free(msg);
+        int ret = 0;
+        sm_wait(g_sm_ctx, &ret);
+        char *done = report_status(0);
+        if (done) {
+          send(client_fd, done, strlen(done), MSG_NOSIGNAL);
+          free(done);
+        }
+      } else {
+        free(msg);
+      }
     }
     close(client_fd);
   }
