@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
+#include "state_machine.h"
 #include "fs_utils.h"
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -7,28 +9,8 @@
 
 #define SM_REG_COUNT 8
 
-typedef void *sm_reg;
-
-typedef enum {
-  SM_OP_LOAD_CONST,
-  SM_OP_FS_CREATE,
-  SM_OP_FS_DELETE,
-  SM_OP_FS_COPY,
-  SM_OP_FS_MOVE,
-  SM_OP_FS_WRITE,
-  SM_OP_FS_READ,
-} sm_opcode;
-
-struct sm_instr;
-
-typedef struct sm_instr {
-  sm_opcode op;          /* operation to perform */
-  void *data;            /* operation-specific data */
-  struct sm_instr *next; /* next step */
-} sm_instr;
-
 /* Generic VM context with a fixed-width register array */
-typedef struct {
+typedef struct sm_vm {
   sm_reg regs[SM_REG_COUNT];
 } sm_vm;
 
@@ -157,4 +139,100 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     cur = cur->next;
   }
+}
+
+/* ----- Persistent executor thread ----- */
+
+typedef struct sm_job {
+  sm_instr *instr;
+  struct sm_job *next;
+} sm_job;
+
+typedef struct sm_ctx {
+  sm_vm vm;
+  sm_job *head;
+  sm_job *tail;
+  pthread_mutex_t lock;
+  pthread_cond_t cond;
+  pthread_t thread;
+  bool running;
+} sm_ctx;
+
+static void *sm_worker(void *arg) {
+  sm_ctx *ctx = arg;
+  for (;;) {
+    pthread_mutex_lock(&ctx->lock);
+    while (ctx->running && ctx->head == NULL)
+      pthread_cond_wait(&ctx->cond, &ctx->lock);
+    if (!ctx->running && ctx->head == NULL) {
+      pthread_mutex_unlock(&ctx->lock);
+      break;
+    }
+    sm_job *j = ctx->head;
+    ctx->head = j->next;
+    if (!ctx->head)
+      ctx->tail = NULL;
+    pthread_mutex_unlock(&ctx->lock);
+
+    sm_execute(j->instr, &ctx->vm);
+    free(j);
+  }
+  return NULL;
+}
+
+sm_ctx *sm_thread_start(void) {
+  sm_ctx *ctx = calloc(1, sizeof(*ctx));
+  if (!ctx)
+    return NULL;
+  pthread_mutex_init(&ctx->lock, NULL);
+  pthread_cond_init(&ctx->cond, NULL);
+  ctx->running = true;
+  if (pthread_create(&ctx->thread, NULL, sm_worker, ctx) != 0) {
+    ctx->running = false;
+    pthread_cond_destroy(&ctx->cond);
+    pthread_mutex_destroy(&ctx->lock);
+    free(ctx);
+    return NULL;
+  }
+  return ctx;
+}
+
+void sm_thread_stop(sm_ctx *ctx) {
+  if (!ctx)
+    return;
+  pthread_mutex_lock(&ctx->lock);
+  ctx->running = false;
+  pthread_cond_signal(&ctx->cond);
+  pthread_mutex_unlock(&ctx->lock);
+  pthread_join(ctx->thread, NULL);
+  pthread_cond_destroy(&ctx->cond);
+  pthread_mutex_destroy(&ctx->lock);
+  free(ctx);
+}
+
+void sm_submit(sm_ctx *ctx, sm_instr *chain) {
+  if (!ctx)
+    return;
+  sm_job *j = malloc(sizeof(*j));
+  if (!j)
+    return;
+  j->instr = chain;
+  j->next = NULL;
+  pthread_mutex_lock(&ctx->lock);
+  if (ctx->tail)
+    ctx->tail->next = j;
+  else
+    ctx->head = j;
+  ctx->tail = j;
+  pthread_cond_signal(&ctx->cond);
+  pthread_mutex_unlock(&ctx->lock);
+}
+
+sm_reg sm_get_reg(sm_ctx *ctx, int idx) {
+  if (!ctx || !reg_valid(idx))
+    return NULL;
+  pthread_mutex_lock(&ctx->lock);
+  sm_reg val = ctx->vm.regs[idx];
+  pthread_mutex_unlock(&ctx->lock);
+  return val;
 }
