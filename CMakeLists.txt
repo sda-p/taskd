@@ -47,8 +47,11 @@ endif()
 
 # Statically linked executable
 add_executable(taskd taskd.c state_machine.c)
+add_executable(sm_test sm_test.c state_machine.c)
 set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC OFF)
 set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC OFF)
+set_target_properties(sm_test PROPERTIES LINK_SEARCH_START_STATIC OFF)
+set_target_properties(sm_test PROPERTIES LINK_SEARCH_END_STATIC OFF)
 
 # Link libraries statically
 add_link_options(-Wl,--gc-sections)
@@ -58,9 +61,12 @@ add_compile_options(-Oz)  # if using Clang
 
 if(TARGET cjson)
     target_link_libraries(taskd PRIVATE cjson)
+    target_link_libraries(sm_test PRIVATE cjson)
     target_include_directories(taskd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON)
+    target_include_directories(sm_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON)
 endif()
 
 if(TARGET xxhash)
     target_link_libraries(taskd PRIVATE xxhash)
+    target_link_libraries(sm_test PRIVATE xxhash)
 endif()
