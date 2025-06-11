@@ -3,7 +3,11 @@
   { "op": "SM_OP_RANDOM_RANGE",  "data": { "dest": 1, "min": 2, "max": 2 } },
   { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 2, "root": 0, "depth": 1 } },
   { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 3, "root": 0, "depth": 1 } },
+<<<<<<< ours
   { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 4, "value": "/path/to/archive.tar" } },
+=======
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 4, "value": "test/archive.tar" } },
+>>>>>>> theirs
   { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 5, "value": "dir" } },
   { "op": "SM_OP_FS_CREATE",     "data": { "dest": 6, "path": 2, "type": 5 } },
   { "op": "SM_OP_FS_CREATE",     "data": { "dest": 7, "path": 3, "type": 5 } },
