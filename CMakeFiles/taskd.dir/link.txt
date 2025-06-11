@@ -1,1 +1,0 @@
-/usr/bin/clang  -s -static -Wl,--gc-sections -no-pie CMakeFiles/taskd.dir/taskd.c.o CMakeFiles/taskd.dir/state_machine.c.o -o taskd  external/cJSON/libcjson.a libxxhash.a -lm 
