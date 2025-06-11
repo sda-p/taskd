@@ -1,1 +1,0 @@
-/usr/bin/clang  -s CMakeFiles/sm_test.dir/sm_test.c.o CMakeFiles/sm_test.dir/state_machine.c.o -o sm_test  -Wl,-rpath,/home/cris/Documents/ssAGI/taskd/external/cJSON external/cJSON/libcjson.so.1.7.18 libxxhash.a -lm 
