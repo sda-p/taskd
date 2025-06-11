@@ -1,0 +1,1 @@
+/usr/bin/clang  -s CMakeFiles/taskd.dir/taskd.c.o CMakeFiles/taskd.dir/state_machine.c.o -o taskd  -Wl,-rpath,/home/cris/Documents/ssAGI/taskd/external/cJSON external/cJSON/libcjson.so.1.7.18 libxxhash.a -lm 

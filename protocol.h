@@ -103,7 +103,7 @@ static inline bool proto_send(int fd, const proto_msg *msg) {
 
 /* Receive raw JSON string (caller must free) */
 static inline char *proto_recv_json(int fd) {
-  char buf[512];
+  char buf[4096];
   ssize_t n = recv(fd, buf, sizeof(buf) - 1, 0);
   if (n <= 0)
     return NULL;

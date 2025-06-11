@@ -1,4 +1,5 @@
 taskd/
+test/
 external/
 build/*
 !build/.gitkeep
