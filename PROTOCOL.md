@@ -47,7 +47,8 @@ The state machine owns eight general purpose registers as defined in
 `state_machine.c`.
 
 Values loaded by `SM_OP_LOAD_CONST` can be referenced by later instructions via
-register indices. File system instructions (create, copy, move, etc.) use these
+register indices. The `value` field may be either a JSON string or number.
+Numeric values are stored directly in the register as integers. File system instructions (create, copy, move, etc.) use these
 registers for their parameters and store success (non-zero) or result pointers in
 a destination register.
 

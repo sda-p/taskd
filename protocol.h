@@ -4,6 +4,7 @@
 #include "state_machine.h"
 #include <cJSON.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -187,12 +188,17 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
         break;
       cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
       cJSON *val = cJSON_GetObjectItemCaseSensitive(data, "value");
-      if (!cJSON_IsNumber(dest) || !cJSON_IsString(val)) {
+      if (!cJSON_IsNumber(dest) ||
+          (!cJSON_IsString(val) && !cJSON_IsNumber(val))) {
         free(d);
         break;
       }
       d->dest = dest->valueint;
-      d->value = strdup(val->valuestring);
+      if (cJSON_IsString(val)) {
+        d->value = strdup(val->valuestring);
+      } else {
+        d->value = (void *)(uintptr_t)val->valueint;
+      }
       ins->data = d;
       break;
     }
