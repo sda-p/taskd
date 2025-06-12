@@ -142,6 +142,7 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_PATH_JOIN", SM_OP_PATH_JOIN},
       {"SM_OP_RANDOM_WALK", SM_OP_RANDOM_WALK},
       {"SM_OP_DIR_CONTAINS", SM_OP_DIR_CONTAINS},
+      {"SM_OP_RAND_SEED", SM_OP_RAND_SEED},
       {"SM_OP_REPORT", SM_OP_REPORT},
       {"SM_OP_RETURN", SM_OP_RETURN},
   };
@@ -499,6 +500,19 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       d->dest = dest->valueint;
       d->dir_a = a->valueint;
       d->dir_b = b->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_RAND_SEED: {
+      sm_rand_seed *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *seed = cJSON_GetObjectItemCaseSensitive(data, "seed");
+      if (!cJSON_IsNumber(seed)) {
+        free(d);
+        break;
+      }
+      d->seed = (unsigned int)seed->valueint;
       ins->data = d;
       break;
     }

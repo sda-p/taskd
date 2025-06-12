@@ -32,6 +32,7 @@ typedef enum {
   SM_OP_PATH_JOIN,
   SM_OP_RANDOM_WALK,
   SM_OP_DIR_CONTAINS,
+  SM_OP_RAND_SEED,
   SM_OP_REPORT,
   SM_OP_RETURN,
 } sm_opcode;
@@ -150,6 +151,10 @@ typedef struct {
   int dir_a;
   int dir_b;
 } sm_dir_contains;
+
+typedef struct {
+  unsigned int seed;
+} sm_rand_seed;
 
 typedef struct {
   int count;

@@ -68,6 +68,8 @@ Additional opcodes provide utility functions:
   levels and store the resulting path in `dest`.
 - `SM_OP_DIR_CONTAINS` – set `dest` to non-zero if directory `a` is fully
   contained within directory `b`.
+- `SM_OP_RAND_SEED` – set the pseudo-random seed to `seed` for future
+  operations.
 - `SM_OP_REPORT` – send a protocol message back to the host containing the
   contents of the specified registers as a JSON array.
 

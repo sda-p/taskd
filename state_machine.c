@@ -11,6 +11,7 @@
 /* Generic VM context with a fixed-width register array */
 typedef struct sm_vm {
   sm_reg regs[SM_REG_COUNT];
+  unsigned int seed;
 } sm_vm;
 
 /* Current context for return signalling */
@@ -38,6 +39,10 @@ typedef struct sm_ctx {
 
 /* Helper to validate register indices */
 static inline bool reg_valid(int idx) { return idx >= 0 && idx < SM_REG_COUNT; }
+
+static inline unsigned int next_seed(unsigned int s) {
+  return s * 1664525u + 1013904223u;
+}
 
 /* ----- State machine executor ----- */
 void sm_execute(sm_instr *head, sm_vm *vm) {
@@ -198,8 +203,10 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
         break;
       long min = (long)(uintptr_t)vm->regs[a->min];
       long max = (long)(uintptr_t)vm->regs[a->max];
+      seed_apply(vm->seed);
       long val = rand_range(min, max);
       vm->regs[a->dest] = (void *)(uintptr_t)val;
+      vm->seed = next_seed(vm->seed);
       break;
     }
     case SM_OP_PATH_JOIN: {
@@ -220,8 +227,10 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
         break;
       const char *root = (const char *)vm->regs[a->root];
       int depth = (int)(uintptr_t)vm->regs[a->depth];
+      seed_apply(vm->seed);
       char *out = root ? fs_random_walk(root, depth) : NULL;
       vm->regs[a->dest] = out;
+      vm->seed = next_seed(vm->seed);
       break;
     }
     case SM_OP_DIR_CONTAINS: {
@@ -233,6 +242,14 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       const char *bp = (const char *)vm->regs[a->dir_b];
       bool ok = (ap && bp) ? fs_dir_contains(ap, bp) : false;
       vm->regs[a->dest] = (void *)(uintptr_t)ok;
+      break;
+    }
+    case SM_OP_RAND_SEED: {
+      sm_rand_seed *a = (sm_rand_seed *)cur->data;
+      if (!a)
+        break;
+      vm->seed = a->seed;
+      seed_apply(vm->seed);
       break;
     }
     case SM_OP_REPORT: {
