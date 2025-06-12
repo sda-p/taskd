@@ -35,8 +35,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/cJSON/CMakeLists.txt)
     set(ENABLE_CJSON_UNINSTALL OFF CACHE BOOL "Disable uninstall target" FORCE)
     set(ENABLE_LOCALES OFF CACHE BOOL "Disable locales" FORCE)
     set(ENABLE_CJSON_UTILS OFF CACHE BOOL "Disable cJSON_utils" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static library" FORCE)
     add_subdirectory(external/cJSON)
-    set_target_properties(cjson PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(cjson PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        BUILD_SHARED_LIBS OFF
+        OUTPUT_NAME "cjson"
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    )
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/xxHash/Makefile)
@@ -48,10 +54,11 @@ endif()
 # Statically linked executable
 add_executable(taskd taskd.c state_machine.c)
 add_executable(sm_test sm_test.c state_machine.c)
-set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC OFF)
-set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC OFF)
-set_target_properties(sm_test PROPERTIES LINK_SEARCH_START_STATIC OFF)
-set_target_properties(sm_test PROPERTIES LINK_SEARCH_END_STATIC OFF)
+# Only link static library (no shared fallback)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_START_STATIC ON)
+set_target_properties(taskd PROPERTIES LINK_SEARCH_END_STATIC ON)
+set_target_properties(sm_test PROPERTIES LINK_SEARCH_START_STATIC ON)
+set_target_properties(sm_test PROPERTIES LINK_SEARCH_END_STATIC ON)
 
 # Link libraries statically
 add_link_options(-Wl,--gc-sections)
