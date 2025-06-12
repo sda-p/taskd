@@ -346,22 +346,56 @@ static inline char *fs_random_walk(const char *root, int depth) {
       free(list);
       break;
     }
-    size_t count = 0;
-    for (const char *p = list; *p; ++p)
-      if (*p == '\n')
-        ++count;
+
+    size_t cap = 16, count = 0;
+    char **dirs = malloc(cap * sizeof(*dirs));
+    if (!dirs) {
+      free(list);
+      free(cur);
+      return NULL;
+    }
+
+    for (char *p = list; *p;) {
+      char *nl = strchr(p, '\n');
+      if (nl)
+        *nl = '\0';
+      char *tmp = path_join(cur, p);
+      if (tmp) {
+        struct stat st;
+        if (lstat(tmp, &st) == 0 && S_ISDIR(st.st_mode)) {
+          if (count == cap) {
+            cap *= 2;
+            char **tmp_dirs = realloc(dirs, cap * sizeof(*dirs));
+            if (!tmp_dirs) {
+              free(tmp);
+              free(dirs);
+              free(list);
+              free(cur);
+              return NULL;
+            }
+            dirs = tmp_dirs;
+          }
+          dirs[count++] = p;
+        }
+        free(tmp);
+      }
+      if (!nl)
+        break;
+      p = nl + 1;
+    }
+
     if (count == 0) {
+      free(dirs);
       free(list);
       break;
     }
+
     long idx = rand_range(0, (long)count - 1);
-    char *next = list_index(list, (size_t)idx);
-    free(list);
-    if (!next)
-      break;
+    char *next = dirs[idx];
     char *tmp = path_join(cur, next);
     free(cur);
-    free(next);
+    free(dirs);
+    free(list);
     if (!tmp)
       return NULL;
     cur = tmp;
