@@ -1,8 +1,8 @@
 [
   { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 0, "value": "/home" } },
-  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 7, "value": "1337" } },
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 7, "value": 1337 } },
   { "op": "SM_OP_RAND_SEED",    "data": { "seed": 7 } },
-  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 1, "value": "1" } },
+  { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 1, "value": 3 } },
   { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 2, "root": 0, "depth": 1 } },
   { "op": "SM_OP_RANDOM_WALK",   "data": { "dest": 3, "root": 0, "depth": 1 } },
   { "op": "SM_OP_LOAD_CONST",    "data": { "dest": 4, "value": "/dres/test.tar" } },
