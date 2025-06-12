@@ -368,6 +368,8 @@ static inline char *fs_random_walk(const char *root, int depth) {
             char **tmp_dirs = realloc(dirs, cap * sizeof(*dirs));
             if (!tmp_dirs) {
               free(tmp);
+              for (size_t i = 0; i < count; ++i)
+                free(dirs[i]);
               free(dirs);
               free(list);
               free(cur);
@@ -375,9 +377,10 @@ static inline char *fs_random_walk(const char *root, int depth) {
             }
             dirs = tmp_dirs;
           }
-          dirs[count++] = p;
+          dirs[count++] = tmp; /* keep absolute path */
+        } else {
+          free(tmp);
         }
-        free(tmp);
       }
       if (!nl)
         break;
@@ -392,13 +395,14 @@ static inline char *fs_random_walk(const char *root, int depth) {
 
     long idx = rand_range(0, (long)count - 1);
     char *next = dirs[idx];
-    char *tmp = path_join(cur, next);
-    free(cur);
+    for (size_t j = 0; j < count; ++j) {
+      if (j != (size_t)idx)
+        free(dirs[j]);
+    }
     free(dirs);
     free(list);
-    if (!tmp)
-      return NULL;
-    cur = tmp;
+    free(cur);
+    cur = next; /* already absolute path */
   }
   return cur;
 }
