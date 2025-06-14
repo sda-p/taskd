@@ -44,25 +44,32 @@ static inline unsigned int next_seed(unsigned int s) {
   return s * 1664525u + 1013904223u;
 }
 
+#define CHECK_REG(c)                                                           \
+  do {                                                                         \
+    if (!(c)) {                                                                \
+      err = SM_ERR_BAD_REG;                                                    \
+      goto done;                                                               \
+    }                                                                          \
+  } while (0)
+
 /* ----- State machine executor ----- */
-void sm_execute(sm_instr *head, sm_vm *vm) {
+int sm_execute(sm_instr *head, sm_vm *vm) {
   if (!vm)
-    return;
+    return SM_ERR_INTERNAL;
+  int err = SM_ERR_NONE;
   sm_instr *cur = head;
   while (cur) {
     switch (cur->op) {
     case SM_OP_LOAD_CONST: {
       sm_load_const *a = (sm_load_const *)cur->data;
-      if (!a || !reg_valid(a->dest))
-        break;
+      CHECK_REG(a && reg_valid(a->dest));
       vm->regs[a->dest] = (void *)a->value;
       break;
     }
     case SM_OP_FS_CREATE: {
       sm_fs_create *a = (sm_fs_create *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path) ||
-          !reg_valid(a->type))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path) &&
+                reg_valid(a->type));
       const char *p = (const char *)vm->regs[a->path];
       const char *t = (const char *)vm->regs[a->type];
       bool ok = (p && t) ? fs_create(p, t) : false;
@@ -71,8 +78,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_DELETE: {
       sm_fs_delete *a = (sm_fs_delete *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path));
       const char *p = (const char *)vm->regs[a->path];
       bool ok = p ? fs_delete(p) : false;
       vm->regs[a->dest] = (void *)(uintptr_t)ok;
@@ -80,8 +86,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_COPY: {
       sm_fs_copy *a = (sm_fs_copy *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->src) || !reg_valid(a->dst))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->src) &&
+                reg_valid(a->dst));
       const char *s = (const char *)vm->regs[a->src];
       const char *d = (const char *)vm->regs[a->dst];
       bool ok = (s && d) ? fs_copy(s, d) : false;
@@ -90,8 +96,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_MOVE: {
       sm_fs_move *a = (sm_fs_move *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->src) || !reg_valid(a->dst))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->src) &&
+                reg_valid(a->dst));
       const char *s = (const char *)vm->regs[a->src];
       const char *d = (const char *)vm->regs[a->dst];
       bool ok = (s && d) ? fs_move(s, d) : false;
@@ -100,9 +106,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_WRITE: {
       sm_fs_write *a = (sm_fs_write *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path) ||
-          !reg_valid(a->content) || !reg_valid(a->mode))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path) &&
+                reg_valid(a->content) && reg_valid(a->mode));
       const char *p = (const char *)vm->regs[a->path];
       const char *c = (const char *)vm->regs[a->content];
       const char *m = (const char *)vm->regs[a->mode];
@@ -112,8 +117,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_READ: {
       sm_fs_read *a = (sm_fs_read *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path));
       const char *p = (const char *)vm->regs[a->path];
       char *buf = p ? fs_read(p) : NULL;
       vm->regs[a->dest] = buf;
@@ -121,8 +125,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_UNPACK: {
       sm_fs_unpack *a = (sm_fs_unpack *)cur->data;
-      if (!a || !reg_valid(a->tar_path) || !reg_valid(a->dest))
-        break;
+      CHECK_REG(a && reg_valid(a->tar_path) && reg_valid(a->dest));
       const char *t = (const char *)vm->regs[a->tar_path];
       const char *d = (const char *)vm->regs[a->dest];
       if (t && d)
@@ -131,8 +134,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_HASH: {
       sm_fs_hash *a = (sm_fs_hash *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path));
       const char *p = (const char *)vm->regs[a->path];
       char *h = p ? fs_hash(p) : NULL;
       vm->regs[a->dest] = h;
@@ -140,8 +142,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_FS_LIST: {
       sm_fs_list *a = (sm_fs_list *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->path))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->path));
       const char *p = (const char *)vm->regs[a->path];
       char *list = p ? fs_list_dir(p) : NULL;
       vm->regs[a->dest] = list;
@@ -149,8 +150,7 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_SHELL: {
       sm_shell *a = (sm_shell *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->cmd))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->cmd));
       const char *c = (const char *)vm->regs[a->cmd];
       char *out = c ? fs_exec(c) : NULL;
       vm->regs[a->dest] = out;
@@ -158,8 +158,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_EQ: {
       sm_eq *a = (sm_eq *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->lhs) &&
+                reg_valid(a->rhs));
       uintptr_t l = (uintptr_t)vm->regs[a->lhs];
       uintptr_t r = (uintptr_t)vm->regs[a->rhs];
       bool eq = l == r;
@@ -168,16 +168,15 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_NOT: {
       sm_not *a = (sm_not *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->src))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->src));
       bool v = (uintptr_t)vm->regs[a->src] != 0;
       vm->regs[a->dest] = (void *)(uintptr_t)(!v);
       break;
     }
     case SM_OP_AND: {
       sm_and *a = (sm_and *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->lhs) &&
+                reg_valid(a->rhs));
       bool l = (uintptr_t)vm->regs[a->lhs] != 0;
       bool r = (uintptr_t)vm->regs[a->rhs] != 0;
       vm->regs[a->dest] = (void *)(uintptr_t)(l && r);
@@ -185,8 +184,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_OR: {
       sm_or *a = (sm_or *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->lhs) &&
+                reg_valid(a->rhs));
       bool l = (uintptr_t)vm->regs[a->lhs] != 0;
       bool r = (uintptr_t)vm->regs[a->rhs] != 0;
       vm->regs[a->dest] = (void *)(uintptr_t)(l || r);
@@ -194,9 +193,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_INDEX_SELECT: {
       sm_index_select *a = (sm_index_select *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->list) ||
-          !reg_valid(a->index))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->list) &&
+                reg_valid(a->index));
       const char *list = (const char *)vm->regs[a->list];
       size_t idx = (size_t)(uintptr_t)vm->regs[a->index];
       char *out = NULL;
@@ -208,8 +206,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_RANDOM_RANGE: {
       sm_random_range *a = (sm_random_range *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->min) || !reg_valid(a->max))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->min) &&
+                reg_valid(a->max));
       long min = (long)(uintptr_t)vm->regs[a->min];
       long max = (long)(uintptr_t)vm->regs[a->max];
       seed_apply(vm->seed);
@@ -220,9 +218,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_PATH_JOIN: {
       sm_path_join *a = (sm_path_join *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->base) ||
-          !reg_valid(a->name))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->base) &&
+                reg_valid(a->name));
       const char *base = (const char *)vm->regs[a->base];
       const char *name = (const char *)vm->regs[a->name];
       char *out = (base && name) ? path_join(base, name) : NULL;
@@ -231,9 +228,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_RANDOM_WALK: {
       sm_random_walk *a = (sm_random_walk *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->root) ||
-          !reg_valid(a->depth))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->root) &&
+                reg_valid(a->depth));
       const char *root = (const char *)vm->regs[a->root];
       int depth = (int)(uintptr_t)vm->regs[a->depth];
       seed_apply(vm->seed);
@@ -244,9 +240,8 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_DIR_CONTAINS: {
       sm_dir_contains *a = (sm_dir_contains *)cur->data;
-      if (!a || !reg_valid(a->dest) || !reg_valid(a->dir_a) ||
-          !reg_valid(a->dir_b))
-        break;
+      CHECK_REG(a && reg_valid(a->dest) && reg_valid(a->dir_a) &&
+                reg_valid(a->dir_b));
       const char *ap = (const char *)vm->regs[a->dir_a];
       const char *bp = (const char *)vm->regs[a->dir_b];
       bool ok = (ap && bp) ? fs_dir_contains(ap, bp) : false;
@@ -255,16 +250,14 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
     }
     case SM_OP_RAND_SEED: {
       sm_rand_seed *a = (sm_rand_seed *)cur->data;
-      if (!a)
-        break;
+      CHECK_REG(a);
       vm->seed = a->seed;
       seed_apply(vm->seed);
       break;
     }
     case SM_OP_REPORT: {
       sm_report *a = (sm_report *)cur->data;
-      if (!a || a->count <= 0 || a->count > SM_REG_COUNT)
-        break;
+      CHECK_REG(a && a->count > 0 && a->count <= SM_REG_COUNT);
       if (current_ctx && current_ctx->report_cb) {
         cJSON *root = cJSON_CreateObject();
         cJSON *arr = cJSON_CreateArray();
@@ -303,11 +296,13 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       continue;
     }
     default:
-      /* Unknown opcode – ignore to allow graceful failure */
-      break;
+      err = SM_ERR_BAD_OP;
+      goto done;
     }
     cur = cur->next;
   }
+done:
+  return err;
 }
 
 /* ----- Persistent executor thread ----- */
@@ -330,12 +325,12 @@ static void *sm_worker(void *arg) {
     pthread_mutex_unlock(&ctx->lock);
 
     current_ctx = ctx;
-    sm_execute(j->instr, &ctx->vm);
+    int exec_ret = sm_execute(j->instr, &ctx->vm);
     current_ctx = NULL;
 
     pthread_mutex_lock(&ctx->lock);
     if (!ctx->job_done) {
-      ctx->job_value = 0;
+      ctx->job_value = exec_ret;
       ctx->job_done = true;
       pthread_cond_signal(&ctx->done_cond);
     }
@@ -380,12 +375,12 @@ void sm_thread_stop(sm_ctx *ctx) {
   free(ctx);
 }
 
-void sm_submit(sm_ctx *ctx, sm_instr *chain) {
+bool sm_submit(sm_ctx *ctx, sm_instr *chain) {
   if (!ctx)
-    return;
+    return false;
   sm_job *j = malloc(sizeof(*j));
   if (!j)
-    return;
+    return false;
   j->instr = chain;
   j->next = NULL;
   pthread_mutex_lock(&ctx->lock);
@@ -397,6 +392,7 @@ void sm_submit(sm_ctx *ctx, sm_instr *chain) {
   ctx->job_done = false;
   pthread_cond_signal(&ctx->cond);
   pthread_mutex_unlock(&ctx->lock);
+  return true;
 }
 
 sm_reg sm_get_reg(sm_ctx *ctx, int idx) {
