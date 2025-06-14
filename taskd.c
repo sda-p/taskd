@@ -166,7 +166,12 @@ int main(int argc, char *argv[]) {
       sm_instr *recipe = proto_parse_recipe(msg);
       if (recipe) {
         sm_set_report_cb(g_sm_ctx, report_fd_cb, &client_fd);
-        sm_submit(g_sm_ctx, recipe);
+        if (!sm_submit(g_sm_ctx, recipe)) {
+          free(msg);
+          sm_set_report_cb(g_sm_ctx, NULL, NULL);
+          close(client_fd);
+          continue;
+        }
         free(msg);
         int ret = 0;
         sm_wait(g_sm_ctx, &ret);

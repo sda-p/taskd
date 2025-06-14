@@ -35,7 +35,11 @@ int main(void) {
   }
 
   sm_set_report_cb(ctx, report_cb, NULL);
-  sm_submit(ctx, recipe);
+  if (!sm_submit(ctx, recipe)) {
+    fprintf(stderr, "failed to submit job\n");
+    sm_thread_stop(ctx);
+    return 1;
+  }
   int ret = 0;
   sm_wait(ctx, &ret);
   sm_thread_stop(ctx);

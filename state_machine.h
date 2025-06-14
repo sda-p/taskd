@@ -13,6 +13,13 @@ extern "C" {
 typedef void *sm_reg;
 
 typedef enum {
+  SM_ERR_NONE = 0,
+  SM_ERR_BAD_REG = 1,
+  SM_ERR_BAD_OP = 2,
+  SM_ERR_INTERNAL = 3,
+} sm_error;
+
+typedef enum {
   SM_OP_LOAD_CONST,
   SM_OP_FS_CREATE,
   SM_OP_FS_DELETE,
@@ -175,7 +182,7 @@ typedef struct sm_ctx sm_ctx;
 
 sm_ctx *sm_thread_start(void);
 void sm_thread_stop(sm_ctx *ctx);
-void sm_submit(sm_ctx *ctx, sm_instr *chain);
+bool sm_submit(sm_ctx *ctx, sm_instr *chain);
 sm_reg sm_get_reg(sm_ctx *ctx, int idx);
 void sm_wait(sm_ctx *ctx, int *value);
 typedef void (*sm_report_cb)(const char *json, void *user);
@@ -183,7 +190,7 @@ void sm_set_report_cb(sm_ctx *ctx, sm_report_cb cb, void *user);
 
 /* Existing executor for direct use */
 typedef struct sm_vm sm_vm;
-void sm_execute(sm_instr *head, sm_vm *vm);
+int sm_execute(sm_instr *head, sm_vm *vm);
 
 #ifdef __cplusplus
 }

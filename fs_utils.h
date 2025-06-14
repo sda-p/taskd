@@ -58,6 +58,8 @@ static int fs_unlink_cb(const char *fpath, const struct stat *sb, int typeflag,
 }
 
 static inline bool fs_delete(const char *path) {
+  if (!path || strcmp(path, "/") == 0 || path[0] == '\0')
+    return false;
   struct stat st;
   if (lstat(path, &st) != 0)
     return false;
