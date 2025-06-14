@@ -147,6 +147,15 @@ void sm_execute(sm_instr *head, sm_vm *vm) {
       vm->regs[a->dest] = list;
       break;
     }
+    case SM_OP_SHELL: {
+      sm_shell *a = (sm_shell *)cur->data;
+      if (!a || !reg_valid(a->dest) || !reg_valid(a->cmd))
+        break;
+      const char *c = (const char *)vm->regs[a->cmd];
+      char *out = c ? fs_exec(c) : NULL;
+      vm->regs[a->dest] = out;
+      break;
+    }
     case SM_OP_EQ: {
       sm_eq *a = (sm_eq *)cur->data;
       if (!a || !reg_valid(a->dest) || !reg_valid(a->lhs) || !reg_valid(a->rhs))

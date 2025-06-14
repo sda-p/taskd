@@ -134,6 +134,7 @@ static inline bool opcode_from_string(const char *s, sm_opcode *out) {
       {"SM_OP_FS_UNPACK", SM_OP_FS_UNPACK},
       {"SM_OP_FS_HASH", SM_OP_FS_HASH},
       {"SM_OP_FS_LIST", SM_OP_FS_LIST},
+      {"SM_OP_SHELL", SM_OP_SHELL},
       {"SM_OP_EQ", SM_OP_EQ},
       {"SM_OP_NOT", SM_OP_NOT},
       {"SM_OP_AND", SM_OP_AND},
@@ -348,6 +349,21 @@ static inline sm_instr *proto_parse_recipe(const char *json) {
       }
       d->dest = dest->valueint;
       d->path = path->valueint;
+      ins->data = d;
+      break;
+    }
+    case SM_OP_SHELL: {
+      sm_shell *d = malloc(sizeof(*d));
+      if (!d)
+        break;
+      cJSON *dest = cJSON_GetObjectItemCaseSensitive(data, "dest");
+      cJSON *cmd = cJSON_GetObjectItemCaseSensitive(data, "cmd");
+      if (!cJSON_IsNumber(dest) || !cJSON_IsNumber(cmd)) {
+        free(d);
+        break;
+      }
+      d->dest = dest->valueint;
+      d->cmd = cmd->valueint;
       ins->data = d;
       break;
     }

@@ -23,6 +23,7 @@ typedef enum {
   SM_OP_FS_UNPACK,
   SM_OP_FS_HASH,
   SM_OP_FS_LIST,
+  SM_OP_SHELL,
   SM_OP_EQ,
   SM_OP_NOT,
   SM_OP_AND,
@@ -98,6 +99,11 @@ typedef struct {
   int dest;
   int path;
 } sm_fs_list;
+
+typedef struct {
+  int dest;
+  int cmd;
+} sm_shell;
 
 typedef struct {
   int dest;
