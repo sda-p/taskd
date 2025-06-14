@@ -97,3 +97,19 @@ The first two instructions load constants into registers `0` and `1`. The third
 instruction references those registers to create the file. Register `2` will
 contain `1` on success or `0` on failure once the worker thread executes the
 recipe.
+
+## Responses
+
+Once a recipe has been submitted the daemon accumulates every report message and
+the final status into a single JSON array. The array elements are the individual
+JSON objects generated during execution. A simple run might therefore produce:
+
+```json
+[
+  {"values": ["ok"]},
+  {"status": 0}
+]
+```
+
+Clients should iterate over this array in order. The initial handshake status is
+still sent as a standalone message before the recipe upload.

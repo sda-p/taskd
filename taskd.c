@@ -84,10 +84,14 @@ static void daemonize(void) {
 
 static sm_ctx *g_sm_ctx = NULL;
 
-static void report_fd_cb(const char *json, void *ud) {
-  int fd = *(int *)ud;
-  if (json)
-    send(fd, json, strlen(json), MSG_NOSIGNAL);
+/* Collect JSON messages into an array instead of writing immediately. */
+static void report_collect_cb(const char *json, void *ud) {
+  cJSON *arr = ud;
+  if (!json || !arr)
+    return;
+  cJSON *obj = cJSON_Parse(json);
+  if (obj)
+    cJSON_AddItemToArray(arr, obj);
 }
 
 int main(int argc, char *argv[]) {
@@ -165,10 +169,12 @@ int main(int argc, char *argv[]) {
     if (msg) {
       sm_instr *recipe = proto_parse_recipe(msg);
       if (recipe) {
-        sm_set_report_cb(g_sm_ctx, report_fd_cb, &client_fd);
+        cJSON *resp = cJSON_CreateArray();
+        sm_set_report_cb(g_sm_ctx, report_collect_cb, resp);
         if (!sm_submit(g_sm_ctx, recipe)) {
           free(msg);
           sm_set_report_cb(g_sm_ctx, NULL, NULL);
+          cJSON_Delete(resp);
           close(client_fd);
           continue;
         }
@@ -178,9 +184,17 @@ int main(int argc, char *argv[]) {
         sm_set_report_cb(g_sm_ctx, NULL, NULL);
         char *done = report_status(0);
         if (done) {
-          send(client_fd, done, strlen(done), MSG_NOSIGNAL);
+          cJSON *obj = cJSON_Parse(done);
+          if (obj)
+            cJSON_AddItemToArray(resp, obj);
           free(done);
         }
+        char *out = cJSON_PrintUnformatted(resp);
+        if (out) {
+          send(client_fd, out, strlen(out), MSG_NOSIGNAL);
+          free(out);
+        }
+        cJSON_Delete(resp);
       } else {
         free(msg);
       }
