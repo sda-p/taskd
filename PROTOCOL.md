@@ -56,6 +56,8 @@ Additional opcodes provide utility functions:
 
 - `SM_OP_FS_HASH` – compute an xxHash64 of the file at `path`.
 - `SM_OP_FS_LIST` – list directory entries separated by newlines.
+- `SM_OP_SHELL` – execute the command string in register `cmd` and store its
+  output in `dest`.
 - `SM_OP_EQ` – compare two registers for equality.
 - `SM_OP_NOT` – logical negation of a register value.
 - `SM_OP_AND` / `SM_OP_OR` – logical conjunction/disjunction of two registers.

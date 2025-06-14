@@ -334,6 +334,37 @@ static inline char *path_join(const char *base, const char *name) {
   return out;
 }
 
+static inline char *fs_exec(const char *cmd) {
+  if (!cmd)
+    return NULL;
+  FILE *p = popen(cmd, "r");
+  if (!p)
+    return NULL;
+  size_t cap = 256, len = 0;
+  char *buf = malloc(cap);
+  if (!buf) {
+    pclose(p);
+    return NULL;
+  }
+  int c;
+  while ((c = fgetc(p)) != EOF) {
+    if (len + 1 >= cap) {
+      cap *= 2;
+      char *tmp = realloc(buf, cap);
+      if (!tmp) {
+        free(buf);
+        pclose(p);
+        return NULL;
+      }
+      buf = tmp;
+    }
+    buf[len++] = (char)c;
+  }
+  buf[len] = '\0';
+  pclose(p);
+  return buf;
+}
+
 static inline char *fs_random_walk(const char *root, int depth) {
   if (!root || depth < 0)
     return NULL;
