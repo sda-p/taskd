@@ -84,12 +84,37 @@ static inline char *proto_build(const proto_msg *msg) {
 }
 
 static inline bool proto_recv(int fd, proto_msg *out) {
-  char buf[256];
-  ssize_t n = recv(fd, buf, sizeof(buf) - 1, 0);
-  if (n <= 0)
+  if (!out)
     return false;
-  buf[n] = '\0';
-  return proto_parse(buf, out);
+  size_t chunk = 256;
+  size_t cap = chunk;
+  char *buf = malloc(cap + 1);
+  if (!buf)
+    return false;
+  size_t off = 0;
+  while (1) {
+    if (off + chunk > cap) {
+      cap *= 2;
+      char *tmp = realloc(buf, cap + 1);
+      if (!tmp) {
+        free(buf);
+        return false;
+      }
+      buf = tmp;
+    }
+    ssize_t n = recv(fd, buf + off, chunk, 0);
+    if (n <= 0) {
+      free(buf);
+      return false;
+    }
+    off += (size_t)n;
+    if (n < (ssize_t)chunk)
+      break;
+  }
+  buf[off] = '\0';
+  bool ok = proto_parse(buf, out);
+  free(buf);
+  return ok;
 }
 
 static inline bool proto_send(int fd, const proto_msg *msg) {
@@ -104,16 +129,33 @@ static inline bool proto_send(int fd, const proto_msg *msg) {
 
 /* Receive raw JSON string (caller must free) */
 static inline char *proto_recv_json(int fd) {
-  char buf[4096];
-  ssize_t n = recv(fd, buf, sizeof(buf) - 1, 0);
-  if (n <= 0)
+  size_t chunk = 4096;
+  size_t cap = chunk;
+  char *buf = malloc(cap + 1);
+  if (!buf)
     return NULL;
-  buf[n] = '\0';
-  char *out = malloc((size_t)n + 1);
-  if (!out)
-    return NULL;
-  memcpy(out, buf, (size_t)n + 1);
-  return out;
+  size_t off = 0;
+  while (1) {
+    if (off + chunk > cap) {
+      cap *= 2;
+      char *tmp = realloc(buf, cap + 1);
+      if (!tmp) {
+        free(buf);
+        return NULL;
+      }
+      buf = tmp;
+    }
+    ssize_t n = recv(fd, buf + off, chunk, 0);
+    if (n <= 0) {
+      free(buf);
+      return NULL;
+    }
+    off += (size_t)n;
+    if (n < (ssize_t)chunk)
+      break;
+  }
+  buf[off] = '\0';
+  return buf;
 }
 
 /* Mapping from opcode string to enum */
