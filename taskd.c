@@ -156,7 +156,9 @@ int main(int argc, char *argv[]) {
     }
     char *status_msg = report_status(status_code);
     if (status_msg) {
-      send(client_fd, status_msg, strlen(status_msg), MSG_NOSIGNAL);
+      char final_msg[128];  // plenty for small JSON messages
+      snprintf(final_msg, sizeof(final_msg), "%s\n%c", status_msg, '\0');
+      send(client_fd, final_msg, strlen(final_msg) + 1, MSG_NOSIGNAL); // +1 to send the null
       free(status_msg);
     }
     if (!handshake_ok) {
@@ -191,7 +193,14 @@ int main(int argc, char *argv[]) {
         }
         char *out = cJSON_PrintUnformatted(resp);
         if (out) {
-          send(client_fd, out, strlen(out), MSG_NOSIGNAL);
+          size_t len = strlen(out);
+          char *tmp = realloc(out, len + 1);
+          if (tmp) {
+            out = tmp;
+            out[len] = '\0';
+            len += 1;
+          }
+          send(client_fd, out, len, MSG_NOSIGNAL);
           free(out);
         }
         cJSON_Delete(resp);
