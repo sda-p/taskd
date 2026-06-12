@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
     char *status_msg = report_status(status_code);
     if (status_msg) {
       char final_msg[128];  // plenty for small JSON messages
-      snprintf(final_msg, sizeof(final_msg), "%s\n%c", status_msg, '\0');
+      snprintf(final_msg, sizeof(final_msg), "%s%c", status_msg, '\0');
       send(client_fd, final_msg, strlen(final_msg) + 1, MSG_NOSIGNAL); // +1 to send the null
       free(status_msg);
     }
